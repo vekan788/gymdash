@@ -7,7 +7,128 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gym: { bg: '#0f172a', card: '#1e293b', accent: '#22c55e', text: '#f8fafc', muted: '#94a3b8' }
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; }
+        .chart-container { position: relative; height: 300px; width: 100%; }
+        .scroll-hidden::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="bg-gym-bg min-h-screen p-4 md:p-8 pb-32">
+    <header class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gym-text tracking-tight">Iron<span class="text-gym-accent">Tracker</span></h1>
+            <p class="text-gym-muted text-sm">Live Sync Active. Build that streak.</p>
+        </div>
+        <button id="openFormBtn" class="h-10 w-10 rounded-full bg-gym-accent flex items-center justify-center text-gym-bg font-bold shadow-[0_0_15px_rgba(34,197,94,0.4)] transition-transform hover:scale-105 active:scale-95">+</button>
+    </header>
+
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" id="statsGrid">
+        <div class="glass-card p-4">
+            <p class="text-gym-muted text-xs uppercase tracking-wider">Total Vol (All Time)</p>
+            <h3 class="text-2xl font-bold mt-1" id="statVolume">0 <span class="text-sm text-gym-muted font-normal">kg</span></h3>
+        </div>
+        <div class="glass-card p-4">
+            <p class="text-gym-muted text-xs uppercase tracking-wider">Sets Logged</p>
+            <h3 class="text-2xl font-bold mt-1" id="statWorkouts">0</h3>
+        </div>
+        <div class="glass-card p-4">
+            <p class="text-gym-muted text-xs uppercase tracking-wider">Max Weight</p>
+            <h3 class="text-2xl font-bold mt-1" id="statSquat">0 <span class="text-sm text-gym-muted font-normal">kg</span></h3>
+        </div>
+        <div class="glass-card p-4">
+            <p class="text-gym-muted text-xs uppercase tracking-wider">Consistency</p>
+            <h3 class="text-2xl font-bold mt-1 text-gym-accent">100%</h3>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Big Chart -->
+        <div class="glass-card p-6 lg:col-span-2">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">Strength Progression</h2>
+                <select id="chartSelector" class="bg-slate-700 text-sm rounded px-2 py-1 border-none outline-none focus:ring-1 focus:ring-gym-accent">
+                    <option value="Squat">Squat</option>
+                    <option value="Bench Press">Bench Press</option>
+                    <option value="Deadlift">Deadlift</option>
+                </select>
+            </div>
+            <div class="chart-container"><canvas id="strengthChart"></canvas></div>
+        </div>
+
+        <!-- Recent Logs / PRs -->
+        <div class="flex flex-col gap-4">
+            <div class="glass-card p-6 flex-1 overflow-y-auto scroll-hidden" style="max-height: 400px;">
+                <h2 class="text-xl font-bold mb-4">🏆 Recent Logs</h2>
+                <ul class="space-y-4" id="recentLogs">
+                    <li class="text-gym-muted text-sm italic" id="loadingText">Fetching from Supabase...</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Input Form Overlay -->
+    <div id="logFormOverlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center transition-opacity">
+        <div class="bg-gym-card w-full sm:w-[400px] sm:rounded-3xl rounded-t-3xl p-6 shadow-2xl border border-white/10 transform transition-transform translate-y-full sm:translate-y-0" id="logFormCard">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Log Set</h2>
+                <button id="closeFormBtn" class="text-gym-muted hover:text-white text-xl">&times;</button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs text-gym-muted uppercase tracking-wider mb-1">Exercise</label>
+                    <select id="inputExercise" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 focus:outline-none focus:border-gym-accent">
+                        <option value="Squat">Squat</option>
+                        <option value="Bench Press">Bench Press</option>
+                        <option value="Deadlift">Deadlift</option>
+                        <option value="Overhead Press">Overhead Press</option>
+                        <option value="Leg Press">Leg Press</option>
+                    </select>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-gym-muted uppercase tracking-wider mb-1">Weight (kg)</label>
+                        <input type="number" id="inputWeight" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 focus:outline-none focus:border-gym-accent" placeholder="100">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gym-muted uppercase tracking-wider mb-1">Reps</label>
+                        <input type="number" id="inputReps" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 focus:outline-none focus:border-gym-accent" placeholder="5">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gym-muted uppercase tracking-wider mb-1">Sets</label>
+                    <input type="number" id="inputSets" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 focus:outline-none focus:border-gym-accent" value="1">
+                </div>
+
+                <label class="flex items-center space-x-3 mt-4">
+                    <input type="checkbox" id="inputPR" class="w-5 h-5 rounded border-slate-700 text-gym-accent focus:ring-gym-accent focus:ring-offset-gym-card bg-slate-900">
+                    <span class="text-sm font-medium">Personal Record! 🏆</span>
+                </label>
+
+                <button id="submitBtn" class="w-full bg-gym-accent hover:bg-green-500 text-slate-900 font-bold py-4 rounded-xl mt-6 transition-transform active:scale-95 flex items-center justify-center gap-2">
+                    Save to Database
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // UI Logic
@@ -38,7 +159,7 @@
             } catch(e) {
                 console.error("Supabase load failed", e);
                 document.getElementById('loadingText').innerText = "Database connection failed.";
-                return; // Stop execution if DB fails so UI still works
+                return; 
             }
 
             let chartInstance = null;
@@ -138,11 +259,8 @@
                 btn.classList.remove("opacity-50");
             }
 
-            // Attach Submit Listener
             const submitBtn = document.getElementById('submitBtn');
             if(submitBtn) {
-                // remove inline onclick first if it exists
-                submitBtn.removeAttribute('onclick'); 
                 submitBtn.addEventListener('click', submitLog);
             }
 
@@ -188,6 +306,5 @@
             fetchWorkouts();
         });
     </script>
-
 </body>
 </html>
