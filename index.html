@@ -33,7 +33,7 @@
             <h1 class="text-3xl font-bold text-gym-text tracking-tight">Iron<span class="text-gym-accent">Tracker</span></h1>
             <p class="text-gym-muted text-sm">Live Sync Active. Build that streak.</p>
         </div>
-        <button onclick="toggleForm()" class="h-10 w-10 rounded-full bg-gym-accent flex items-center justify-center text-gym-bg font-bold shadow-[0_0_15px_rgba(34,197,94,0.4)] transition-transform hover:scale-105 active:scale-95">+</button>
+        <button id="openFormBtn" class="h-10 w-10 rounded-full bg-gym-accent flex items-center justify-center text-gym-bg font-bold shadow-[0_0_15px_rgba(34,197,94,0.4)] transition-transform hover:scale-105 active:scale-95">+</button>
     </header>
 
     <!-- Stats Grid -->
@@ -86,7 +86,7 @@
         <div class="bg-gym-card w-full sm:w-[400px] sm:rounded-3xl rounded-t-3xl p-6 shadow-2xl border border-white/10 transform transition-transform translate-y-full sm:translate-y-0" id="logFormCard">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-bold">Log Set</h2>
-                <button onclick="toggleForm()" class="text-gym-muted hover:text-white text-xl">&times;</button>
+                <button id="closeFormBtn" class="text-gym-muted hover:text-white text-xl">&times;</button>
             </div>
             
             <div class="space-y-4">
@@ -138,14 +138,24 @@
         let chartInstance = null;
         let allData = [];
 
+        
         // UI Logic
+        const overlay = document.getElementById('logFormOverlay');
+        const card = document.getElementById('logFormCard');
+        
         function toggleForm() {
-            const overlay = document.getElementById('logFormOverlay');
-            const card = document.getElementById('logFormCard');
             if (overlay.classList.contains('hidden')) {
                 overlay.classList.remove('hidden');
                 setTimeout(() => card.classList.remove('translate-y-full'), 10);
             } else {
+                card.classList.add('translate-y-full');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+            }
+        }
+
+        document.getElementById('openFormBtn').addEventListener('click', toggleForm);
+        document.getElementById('closeFormBtn').addEventListener('click', toggleForm);
+ else {
                 card.classList.add('translate-y-full');
                 setTimeout(() => overlay.classList.add('hidden'), 300);
             }
