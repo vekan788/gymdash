@@ -1,0 +1,32 @@
+{
+    "workouts": [
+        {
+            "id": 1,
+            "date": "Mar 16, 2026",
+            "type": "Leg Day (Squat Focus)",
+            "exercises": [
+                {
+                    "name": "Squat",
+                    "weight": 120,
+                    "sets": 5,
+                    "reps": 5,
+                    "is_pr": true
+                },
+                {
+                    "name": "Leg Press",
+                    "weight": 200,
+                    "sets": 3,
+                    "reps": 10,
+                    "is_pr": false
+                }
+            ]
+        }
+    ],
+    "stats": {
+        "total_volume": 4200,
+        "workout_count": 1,
+        "est_1rm_bench": 0,
+        "est_1rm_squat": 135,
+        "est_1rm_deadlift": 0
+    }
+}

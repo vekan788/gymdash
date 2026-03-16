@@ -12,14 +12,9 @@
             theme: {
                 extend: {
                     colors: {
-                        gym: {
-                            bg: '#0f172a',
-                            card: '#1e293b',
-                            accent: '#22c55e',
-                            text: '#f8fafc',
-                            muted: '#94a3b8'
-                        }
-                    }
+                        gym: { bg: '#0f172a', card: '#1e293b', accent: '#22c55e', text: '#f8fafc', muted: '#94a3b8' }
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
                 }
             }
         }
@@ -28,64 +23,126 @@
         body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
         .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; }
         .chart-container { position: relative; height: 300px; width: 100%; }
+        .scroll-hidden::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="bg-gym-bg min-h-screen p-4 md:p-8">
     <header class="flex justify-between items-center mb-8">
         <div>
             <h1 class="text-3xl font-bold text-gym-text tracking-tight">Iron<span class="text-gym-accent">Tracker</span></h1>
-            <p class="text-gym-muted text-sm">Welcome to your clean slate, Adam. Let's build that streak.</p>
+            <p class="text-gym-muted text-sm">Welcome back, Adam. Let's build that streak.</p>
         </div>
         <div class="h-10 w-10 rounded-full bg-gym-accent flex items-center justify-center text-gym-bg font-bold">A</div>
     </header>
 
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" id="statsGrid">
         <div class="glass-card p-4">
-            <p class="text-gym-muted text-xs uppercase tracking-wider">Total Volume</p>
-            <h3 class="text-2xl font-bold mt-1">0 <span class="text-sm text-gym-muted font-normal">kg</span></h3>
+            <p class="text-gym-muted text-xs uppercase tracking-wider">Total Vol (Week)</p>
+            <h3 class="text-2xl font-bold mt-1" id="statVolume">0 <span class="text-sm text-gym-muted font-normal">kg</span></h3>
         </div>
         <div class="glass-card p-4">
             <p class="text-gym-muted text-xs uppercase tracking-wider">Workouts</p>
-            <h3 class="text-2xl font-bold mt-1">0</h3>
+            <h3 class="text-2xl font-bold mt-1" id="statWorkouts">0</h3>
         </div>
         <div class="glass-card p-4">
-            <p class="text-gym-muted text-xs uppercase tracking-wider">Est. 1RM Bench</p>
-            <h3 class="text-2xl font-bold mt-1">0 <span class="text-sm text-gym-muted font-normal">kg</span></h3>
+            <p class="text-gym-muted text-xs uppercase tracking-wider">Est. 1RM Squat</p>
+            <h3 class="text-2xl font-bold mt-1" id="statSquat">0 <span class="text-sm text-gym-muted font-normal">kg</span></h3>
         </div>
         <div class="glass-card p-4">
             <p class="text-gym-muted text-xs uppercase tracking-wider">Consistency</p>
-            <h3 class="text-2xl font-bold mt-1">0%</h3>
+            <h3 class="text-2xl font-bold mt-1 text-gym-accent">100%</h3>
         </div>
     </div>
 
-    <div class="glass-card p-6">
-        <h2 class="text-xl font-bold mb-6">Strength Progression</h2>
-        <div class="chart-container"><canvas id="strengthChart"></canvas></div>
-    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Big Chart -->
+        <div class="glass-card p-6 lg:col-span-2">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">Strength Progression</h2>
+                <select id="chartSelector" class="bg-slate-700 text-sm rounded px-2 py-1 border-none outline-none focus:ring-1 focus:ring-gym-accent">
+                    <option value="Squat">Squat</option>
+                    <option value="Bench">Bench Press</option>
+                    <option value="Deadlift">Deadlift</option>
+                </select>
+            </div>
+            <div class="chart-container"><canvas id="strengthChart"></canvas></div>
+        </div>
 
-    <div class="glass-card p-6 mt-8">
-        <h2 class="text-xl font-bold mb-4">🏋️‍♂️ Recent Workouts</h2>
-        <ul class="space-y-4">
-            <li class="flex justify-between items-center border-b border-slate-700 pb-2">
-                <div>
-                    <p class="font-medium text-gym-text">Squat (Mock)</p>
-                    <p class="text-xs text-gym-muted">Mar 16, 2026</p>
-                </div>
-                <div class="text-right">
-                    <p class="font-bold text-gym-accent">120 kg</p>
-                    <p class="text-xs text-gym-muted">5x5</p>
-                </div>
-            </li>
-        </ul>
+        <!-- Recent Logs / PRs -->
+        <div class="flex flex-col gap-4">
+            <div class="glass-card p-6 flex-1 overflow-y-auto scroll-hidden" style="max-height: 400px;">
+                <h2 class="text-xl font-bold mb-4">🏆 Recent PRs & Logs</h2>
+                <ul class="space-y-4" id="recentLogs">
+                    <li class="text-gym-muted text-sm italic">Loading data...</li>
+                </ul>
+            </div>
+        </div>
     </div>
 
     <script>
-        const ctxStrength = document.getElementById('strengthChart').getContext('2d');
-        new Chart(ctxStrength, {
-            type: 'line',
-            data: { labels: ['Start'], datasets: [{ data: [0], borderColor: '#22c55e', fill: true }] },
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0 } } }
-        });
+        // Fetch data.json and render
+        fetch('data.json')
+            .then(response => response.json())
+            .then(data => {
+                // Update Stats
+                document.getElementById('statVolume').innerHTML = `${data.stats.total_volume.toLocaleString()} <span class="text-sm text-gym-muted font-normal">kg</span>`;
+                document.getElementById('statWorkouts').innerText = data.stats.workout_count;
+                document.getElementById('statSquat').innerHTML = `${data.stats.est_1rm_squat} <span class="text-sm text-gym-muted font-normal">kg</span>`;
+
+                // Update Recent Logs
+                const logsList = document.getElementById('recentLogs');
+                logsList.innerHTML = '';
+                data.workouts.slice().reverse().forEach(workout => {
+                    workout.exercises.forEach(ex => {
+                        const prBadge = ex.is_pr ? `<span class="bg-gym-accent/20 text-gym-accent text-[10px] px-2 py-0.5 rounded-full ml-2 uppercase font-bold tracking-wider border border-gym-accent/50">PR</span>` : '';
+                        logsList.innerHTML += `
+                            <li class="flex justify-between items-center border-b border-slate-700 pb-3 mb-3 last:border-0">
+                                <div>
+                                    <p class="font-medium text-gym-text">${ex.name} ${prBadge}</p>
+                                    <p class="text-xs text-gym-muted">${workout.date} • ${workout.type}</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="font-bold text-gym-accent">${ex.weight} kg</p>
+                                    <p class="text-xs text-gym-muted">${ex.sets}x${ex.reps}</p>
+                                </div>
+                            </li>
+                        `;
+                    });
+                });
+
+                // Init Chart
+                initChart();
+            });
+
+        let chartInstance = null;
+        function initChart() {
+            const ctx = document.getElementById('strengthChart').getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(34, 197, 94, 0.5)');
+            gradient.addColorStop(1, 'rgba(34, 197, 94, 0)');
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Start', 'Today'],
+                    datasets: [{
+                        label: 'Weight (kg)',
+                        data: [0, 120], // Mock dynamic logic here later
+                        borderColor: '#22c55e', backgroundColor: gradient,
+                        borderWidth: 3, fill: true, tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+        }
     </script>
 </body>
 </html>
