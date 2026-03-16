@@ -7,301 +7,187 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        gym: { bg: '#0f172a', card: '#1e293b', accent: '#22c55e', text: '#f8fafc', muted: '#94a3b8' }
-                    },
-                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+        document.addEventListener('DOMContentLoaded', () => {
+            // UI Logic
+            const overlay = document.getElementById('logFormOverlay');
+            const card = document.getElementById('logFormCard');
+            const openBtn = document.getElementById('openFormBtn');
+            const closeBtn = document.getElementById('closeFormBtn');
+            
+            function toggleForm() {
+                if (overlay.classList.contains('hidden')) {
+                    overlay.classList.remove('hidden');
+                    setTimeout(() => card.classList.remove('translate-y-full'), 10);
+                } else {
+                    card.classList.add('translate-y-full');
+                    setTimeout(() => overlay.classList.add('hidden'), 300);
                 }
             }
-        }
-    </script>
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
-        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; }
-        .chart-container { position: relative; height: 300px; width: 100%; }
-        .scroll-hidden::-webkit-scrollbar { display: none; }
-    </style>
-</head>
-<body class="bg-gym-bg min-h-screen p-4 md:p-8 pb-32">
-    <header class="flex justify-between items-center mb-8">
-        <div>
-            <h1 class="text-3xl font-bold text-gym-text tracking-tight">Iron<span class="text-gym-accent">Tracker</span></h1>
-            <p class="text-gym-muted text-sm">Live Sync Active. Build that streak.</p>
-        </div>
-        <button id="openFormBtn" class="h-10 w-10 rounded-full bg-gym-accent flex items-center justify-center text-gym-bg font-bold shadow-[0_0_15px_rgba(34,197,94,0.4)] transition-transform hover:scale-105 active:scale-95">+</button>
-    </header>
 
-    <!-- Stats Grid -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" id="statsGrid">
-        <div class="glass-card p-4">
-            <p class="text-gym-muted text-xs uppercase tracking-wider">Total Vol (All Time)</p>
-            <h3 class="text-2xl font-bold mt-1" id="statVolume">0 <span class="text-sm text-gym-muted font-normal">kg</span></h3>
-        </div>
-        <div class="glass-card p-4">
-            <p class="text-gym-muted text-xs uppercase tracking-wider">Sets Logged</p>
-            <h3 class="text-2xl font-bold mt-1" id="statWorkouts">0</h3>
-        </div>
-        <div class="glass-card p-4">
-            <p class="text-gym-muted text-xs uppercase tracking-wider">Max Weight</p>
-            <h3 class="text-2xl font-bold mt-1" id="statSquat">0 <span class="text-sm text-gym-muted font-normal">kg</span></h3>
-        </div>
-        <div class="glass-card p-4">
-            <p class="text-gym-muted text-xs uppercase tracking-wider">Consistency</p>
-            <h3 class="text-2xl font-bold mt-1 text-gym-accent">100%</h3>
-        </div>
-    </div>
+            if(openBtn) openBtn.addEventListener('click', toggleForm);
+            if(closeBtn) closeBtn.addEventListener('click', toggleForm);
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Big Chart -->
-        <div class="glass-card p-6 lg:col-span-2">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-bold">Strength Progression</h2>
-                <select id="chartSelector" class="bg-slate-700 text-sm rounded px-2 py-1 border-none outline-none focus:ring-1 focus:ring-gym-accent">
-                    <option value="Squat">Squat</option>
-                    <option value="Bench Press">Bench Press</option>
-                    <option value="Deadlift">Deadlift</option>
-                </select>
-            </div>
-            <div class="chart-container"><canvas id="strengthChart"></canvas></div>
-        </div>
+            // Supabase Initialization
+            const _supabaseUrl = 'https://lweysacjbxyhisltfalb.supabase.co';
+            const _supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3ZXlzYWNqYnh5aGlzbHRmYWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NzM2MDgsImV4cCI6MjA4OTI0OTYwOH0.5tsnaKmEbw4b4zGlJAzWFhYhkD98ZCzXghJvz2fkCOE';
+            let supabase;
+            try {
+                supabase = window.supabase.createClient(_supabaseUrl, _supabaseKey);
+            } catch(e) {
+                console.error("Supabase load failed", e);
+                document.getElementById('loadingText').innerText = "Database connection failed.";
+                return; // Stop execution if DB fails so UI still works
+            }
 
-        <!-- Recent Logs / PRs -->
-        <div class="flex flex-col gap-4">
-            <div class="glass-card p-6 flex-1 overflow-y-auto scroll-hidden" style="max-height: 400px;">
-                <h2 class="text-xl font-bold mb-4">🏆 Recent Logs</h2>
-                <ul class="space-y-4" id="recentLogs">
-                    <li class="text-gym-muted text-sm italic" id="loadingText">Fetching from Supabase...</li>
-                </ul>
-            </div>
-        </div>
-    </div>
+            let chartInstance = null;
+            let allData = [];
 
-    <!-- Floating Input Form Overlay -->
-    <div id="logFormOverlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center transition-opacity">
-        <div class="bg-gym-card w-full sm:w-[400px] sm:rounded-3xl rounded-t-3xl p-6 shadow-2xl border border-white/10 transform transition-transform translate-y-full sm:translate-y-0" id="logFormCard">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold">Log Set</h2>
-                <button id="closeFormBtn" class="text-gym-muted hover:text-white text-xl">&times;</button>
-            </div>
-            
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs text-gym-muted uppercase tracking-wider mb-1">Exercise</label>
-                    <select id="inputExercise" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 focus:outline-none focus:border-gym-accent">
-                        <option value="Squat">Squat</option>
-                        <option value="Bench Press">Bench Press</option>
-                        <option value="Deadlift">Deadlift</option>
-                        <option value="Overhead Press">Overhead Press</option>
-                        <option value="Leg Press">Leg Press</option>
-                    </select>
-                </div>
+            // Fetch Data
+            async function fetchWorkouts() {
+                const { data, error } = await supabase
+                    .from('workouts')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error("Error fetching:", error);
+                    document.getElementById('loadingText').innerText = "Error loading data.";
+                    return;
+                }
                 
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs text-gym-muted uppercase tracking-wider mb-1">Weight (kg)</label>
-                        <input type="number" id="inputWeight" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 focus:outline-none focus:border-gym-accent" placeholder="100">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gym-muted uppercase tracking-wider mb-1">Reps</label>
-                        <input type="number" id="inputReps" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 focus:outline-none focus:border-gym-accent" placeholder="5">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs text-gym-muted uppercase tracking-wider mb-1">Sets</label>
-                    <input type="number" id="inputSets" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 focus:outline-none focus:border-gym-accent" value="1">
-                </div>
-
-                <label class="flex items-center space-x-3 mt-4">
-                    <input type="checkbox" id="inputPR" class="w-5 h-5 rounded border-slate-700 text-gym-accent focus:ring-gym-accent focus:ring-offset-gym-card bg-slate-900">
-                    <span class="text-sm font-medium">Personal Record! 🏆</span>
-                </label>
-
-                <button onclick="submitLog()" id="submitBtn" class="w-full bg-gym-accent hover:bg-green-500 text-slate-900 font-bold py-4 rounded-xl mt-6 transition-transform active:scale-95 flex items-center justify-center gap-2">
-                    Save to Database
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Supabase Initialization
-        const _supabaseUrl = 'https://lweysacjbxyhisltfalb.supabase.co';
-        const _supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3ZXlzYWNqYnh5aGlzbHRmYWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NzM2MDgsImV4cCI6MjA4OTI0OTYwOH0.5tsnaKmEbw4b4zGlJAzWFhYhkD98ZCzXghJvz2fkCOE';
-        const supabase = supabase.createClient(_supabaseUrl, _supabaseKey);
-
-        let chartInstance = null;
-        let allData = [];
-
-        
-        // UI Logic
-        const overlay = document.getElementById('logFormOverlay');
-        const card = document.getElementById('logFormCard');
-        
-        function toggleForm() {
-            if (overlay.classList.contains('hidden')) {
-                overlay.classList.remove('hidden');
-                setTimeout(() => card.classList.remove('translate-y-full'), 10);
-            } else {
-                card.classList.add('translate-y-full');
-                setTimeout(() => overlay.classList.add('hidden'), 300);
-            }
-        }
-
-        document.getElementById('openFormBtn').addEventListener('click', toggleForm);
-        document.getElementById('closeFormBtn').addEventListener('click', toggleForm);
- else {
-                card.classList.add('translate-y-full');
-                setTimeout(() => overlay.classList.add('hidden'), 300);
-            }
-        }
-
-        // Fetch Data
-        async function fetchWorkouts() {
-            const { data, error } = await supabase
-                .from('workouts')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (error) {
-                console.error("Error fetching:", error);
-                document.getElementById('loadingText').innerText = "Error loading data.";
-                return;
-            }
-            
-            allData = data;
-            renderUI(data);
-        }
-
-        // Render UI
-        function renderUI(data) {
-            document.getElementById('loadingText').style.display = 'none';
-            const logsList = document.getElementById('recentLogs');
-            logsList.innerHTML = '';
-
-            let totalVolume = 0;
-            let maxWeight = 0;
-
-            if (data.length === 0) {
-                logsList.innerHTML = '<li class="text-gym-muted text-sm text-center py-8">No workouts logged yet. Tap the + button to start.</li>';
+                allData = data || [];
+                renderUI(allData);
             }
 
-            data.forEach(log => {
-                // Calculate Stats
-                const volume = log.weight * log.reps * log.sets;
-                totalVolume += volume;
-                if (log.weight > maxWeight) maxWeight = log.weight;
+            // Render UI
+            function renderUI(data) {
+                const loadText = document.getElementById('loadingText');
+                if(loadText) loadText.style.display = 'none';
+                
+                const logsList = document.getElementById('recentLogs');
+                logsList.innerHTML = '';
 
-                // Format Date
-                const date = new Date(log.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                let totalVolume = 0;
+                let maxWeight = 0;
 
-                // Render List
-                const prBadge = log.is_pr ? `<span class="bg-gym-accent/20 text-gym-accent text-[10px] px-2 py-0.5 rounded-full ml-2 uppercase font-bold tracking-wider border border-gym-accent/50">PR</span>` : '';
-                logsList.innerHTML += `
-                    <li class="flex justify-between items-center border-b border-slate-700 pb-3 mb-3 last:border-0">
-                        <div>
-                            <p class="font-medium text-gym-text">${log.exercise_name} ${prBadge}</p>
-                            <p class="text-xs text-gym-muted">${date}</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="font-bold text-gym-accent">${log.weight} kg</p>
-                            <p class="text-xs text-gym-muted">${log.sets}x${log.reps}</p>
-                        </div>
-                    </li>
-                `;
-            });
+                if (data.length === 0) {
+                    logsList.innerHTML = '<li class="text-gym-muted text-sm text-center py-8">No workouts logged yet. Tap the + button to start.</li>';
+                } else {
+                    data.forEach(log => {
+                        const volume = log.weight * log.reps * log.sets;
+                        totalVolume += volume;
+                        if (log.weight > maxWeight) maxWeight = log.weight;
 
-            // Update DOM Stats
-            document.getElementById('statVolume').innerHTML = `${totalVolume.toLocaleString()} <span class="text-sm text-gym-muted font-normal">kg</span>`;
-            document.getElementById('statWorkouts').innerText = data.length;
-            document.getElementById('statSquat').innerHTML = `${maxWeight} <span class="text-sm text-gym-muted font-normal">kg</span>`;
-
-            updateChart('Squat'); // Default chart view
-        }
-
-        // Submit Logic
-        async function submitLog() {
-            const btn = document.getElementById('submitBtn');
-            const exercise = document.getElementById('inputExercise').value;
-            const weight = parseFloat(document.getElementById('inputWeight').value);
-            const reps = parseInt(document.getElementById('inputReps').value);
-            const sets = parseInt(document.getElementById('inputSets').value);
-            const is_pr = document.getElementById('inputPR').checked;
-
-            if(!weight || !reps || !sets) { alert("Please fill all fields"); return; }
-
-            btn.innerHTML = "Saving...";
-            btn.classList.add("opacity-50");
-
-            const { data, error } = await supabase
-                .from('workouts')
-                .insert([{ exercise_name: exercise, weight: weight, reps: reps, sets: sets, is_pr: is_pr }]);
-
-            if (error) {
-                alert("Error saving data!");
-                console.error(error);
-            } else {
-                // Reset form and reload
-                document.getElementById('inputWeight').value = '';
-                document.getElementById('inputReps').value = '';
-                document.getElementById('inputPR').checked = false;
-                toggleForm();
-                fetchWorkouts(); // Refresh the feed!
-            }
-            
-            btn.innerHTML = "Save to Database";
-            btn.classList.remove("opacity-50");
-        }
-
-        // Chart Logic
-        function updateChart(exerciseName) {
-            const filteredData = allData.filter(d => d.exercise_name === exerciseName).reverse();
-            
-            const labels = filteredData.map((_, i) => `S${i+1}`);
-            const weights = filteredData.map(d => d.weight);
-
-            const ctx = document.getElementById('strengthChart').getContext('2d');
-            
-            if(chartInstance) { chartInstance.destroy(); }
-
-            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-            gradient.addColorStop(0, 'rgba(34, 197, 94, 0.5)');
-            gradient.addColorStop(1, 'rgba(34, 197, 94, 0)');
-
-            chartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels.length > 0 ? labels : ['No Data'],
-                    datasets: [{
-                        label: `${exerciseName} Weight (kg)`,
-                        data: weights.length > 0 ? weights : [0],
-                        borderColor: '#22c55e', backgroundColor: gradient,
-                        borderWidth: 3, fill: true, tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
-                        x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
-                    }
+                        const dateStr = new Date(log.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        const prBadge = log.is_pr ? `<span class="bg-gym-accent/20 text-gym-accent text-[10px] px-2 py-0.5 rounded-full ml-2 uppercase font-bold tracking-wider border border-gym-accent/50">PR</span>` : '';
+                        
+                        logsList.innerHTML += `
+                            <li class="flex justify-between items-center border-b border-slate-700 pb-3 mb-3 last:border-0">
+                                <div>
+                                    <p class="font-medium text-gym-text">${log.exercise_name} ${prBadge}</p>
+                                    <p class="text-xs text-gym-muted">${dateStr}</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="font-bold text-gym-accent">${log.weight} kg</p>
+                                    <p class="text-xs text-gym-muted">${log.sets}x${log.reps}</p>
+                                </div>
+                            </li>
+                        `;
+                    });
                 }
-            });
-        }
 
-        // Listener for chart dropdown
-        document.getElementById('chartSelector').addEventListener('change', (e) => {
-            updateChart(e.target.value);
+                document.getElementById('statVolume').innerHTML = `${totalVolume.toLocaleString()} <span class="text-sm text-gym-muted font-normal">kg</span>`;
+                document.getElementById('statWorkouts').innerText = data.length;
+                document.getElementById('statSquat').innerHTML = `${maxWeight} <span class="text-sm text-gym-muted font-normal">kg</span>`;
+
+                updateChart(document.getElementById('chartSelector').value || 'Squat');
+            }
+
+            // Submit Logic
+            async function submitLog() {
+                const btn = document.getElementById('submitBtn');
+                const exercise = document.getElementById('inputExercise').value;
+                const weight = parseFloat(document.getElementById('inputWeight').value);
+                const reps = parseInt(document.getElementById('inputReps').value);
+                const sets = parseInt(document.getElementById('inputSets').value);
+                const is_pr = document.getElementById('inputPR').checked;
+
+                if(!weight || !reps || !sets) { alert("Please fill all fields"); return; }
+
+                btn.innerHTML = "Saving...";
+                btn.classList.add("opacity-50");
+
+                const { data, error } = await supabase
+                    .from('workouts')
+                    .insert([{ exercise_name: exercise, weight: weight, reps: reps, sets: sets, is_pr: is_pr }]);
+
+                if (error) {
+                    alert("Error saving data: " + error.message);
+                    console.error(error);
+                } else {
+                    document.getElementById('inputWeight').value = '';
+                    document.getElementById('inputReps').value = '';
+                    document.getElementById('inputPR').checked = false;
+                    toggleForm();
+                    fetchWorkouts(); 
+                }
+                
+                btn.innerHTML = "Save to Database";
+                btn.classList.remove("opacity-50");
+            }
+
+            // Attach Submit Listener
+            const submitBtn = document.getElementById('submitBtn');
+            if(submitBtn) {
+                // remove inline onclick first if it exists
+                submitBtn.removeAttribute('onclick'); 
+                submitBtn.addEventListener('click', submitLog);
+            }
+
+            // Chart Logic
+            function updateChart(exerciseName) {
+                const filteredData = allData.filter(d => d.exercise_name === exerciseName).reverse();
+                const labels = filteredData.map((_, i) => `S${i+1}`);
+                const weights = filteredData.map(d => d.weight);
+
+                const ctx = document.getElementById('strengthChart').getContext('2d');
+                if(chartInstance) { chartInstance.destroy(); }
+
+                const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+                gradient.addColorStop(0, 'rgba(34, 197, 94, 0.5)');
+                gradient.addColorStop(1, 'rgba(34, 197, 94, 0)');
+
+                chartInstance = new window.Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels.length > 0 ? labels : ['No Data'],
+                        datasets: [{
+                            label: `${exerciseName} Weight (kg)`,
+                            data: weights.length > 0 ? weights : [0],
+                            borderColor: '#22c55e', backgroundColor: gradient,
+                            borderWidth: 3, fill: true, tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                            x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                        }
+                    }
+                });
+            }
+
+            const chartSel = document.getElementById('chartSelector');
+            if(chartSel) chartSel.addEventListener('change', (e) => updateChart(e.target.value));
+
+            // Load initially
+            fetchWorkouts();
         });
-
-        // Load initially
-        fetchWorkouts();
     </script>
+
 </body>
 </html>
