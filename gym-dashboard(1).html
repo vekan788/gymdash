@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IronTracker | Gym Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gym: {
+                            bg: '#0f172a',
+                            card: '#1e293b',
+                            accent: '#22c55e',
+                            text: '#f8fafc',
+                            muted: '#94a3b8'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; }
+        .chart-container { position: relative; height: 300px; width: 100%; }
+    </style>
+</head>
+<body class="bg-gym-bg min-h-screen p-4 md:p-8">
+    <header class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gym-text tracking-tight">Iron<span class="text-gym-accent">Tracker</span></h1>
+            <p class="text-gym-muted text-sm">Welcome to your clean slate, Adam. Let's build that streak.</p>
+        </div>
+        <div class="h-10 w-10 rounded-full bg-gym-accent flex items-center justify-center text-gym-bg font-bold">A</div>
+    </header>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="glass-card p-4">
+            <p class="text-gym-muted text-xs uppercase tracking-wider">Total Volume</p>
+            <h3 class="text-2xl font-bold mt-1">0 <span class="text-sm text-gym-muted font-normal">kg</span></h3>
+        </div>
+        <div class="glass-card p-4">
+            <p class="text-gym-muted text-xs uppercase tracking-wider">Workouts</p>
+            <h3 class="text-2xl font-bold mt-1">0</h3>
+        </div>
+        <div class="glass-card p-4">
+            <p class="text-gym-muted text-xs uppercase tracking-wider">Est. 1RM Bench</p>
+            <h3 class="text-2xl font-bold mt-1">0 <span class="text-sm text-gym-muted font-normal">kg</span></h3>
+        </div>
+        <div class="glass-card p-4">
+            <p class="text-gym-muted text-xs uppercase tracking-wider">Consistency</p>
+            <h3 class="text-2xl font-bold mt-1">0%</h3>
+        </div>
+    </div>
+
+    <div class="glass-card p-6">
+        <h2 class="text-xl font-bold mb-6">Strength Progression</h2>
+        <div class="chart-container"><canvas id="strengthChart"></canvas></div>
+    </div>
+
+    <script>
+        const ctxStrength = document.getElementById('strengthChart').getContext('2d');
+        new Chart(ctxStrength, {
+            type: 'line',
+            data: { labels: ['Start'], datasets: [{ data: [0], borderColor: '#22c55e', fill: true }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0 } } }
+        });
+    </script>
+</body>
+</html>
