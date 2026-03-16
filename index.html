@@ -63,6 +63,22 @@
         <div class="chart-container"><canvas id="strengthChart"></canvas></div>
     </div>
 
+    <div class="glass-card p-6 mt-8">
+        <h2 class="text-xl font-bold mb-4">🏋️‍♂️ Recent Workouts</h2>
+        <ul class="space-y-4">
+            <li class="flex justify-between items-center border-b border-slate-700 pb-2">
+                <div>
+                    <p class="font-medium text-gym-text">Squat (Mock)</p>
+                    <p class="text-xs text-gym-muted">Mar 16, 2026</p>
+                </div>
+                <div class="text-right">
+                    <p class="font-bold text-gym-accent">120 kg</p>
+                    <p class="text-xs text-gym-muted">5x5</p>
+                </div>
+            </li>
+        </ul>
+    </div>
+
     <script>
         const ctxStrength = document.getElementById('strengthChart').getContext('2d');
         new Chart(ctxStrength, {
