@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradeFlow | Journal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            bg: '#050505',
+                            card: '#121212',
+                            border: '#1E1E1E'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #050505; color: #fff; }
+        
+        /* Gradients inspired by the screenshot */
+        .gradient-purple {
+            background: linear-gradient(135deg, #6366F1 0%, #A855F7 100%);
+        }
+        .gradient-blue {
+            background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
+        }
+        .gradient-orange {
+            background: linear-gradient(135deg, #F97316 0%, #EC4899 100%);
+        }
+        .gradient-dark {
+            background: linear-gradient(180deg, rgba(30,30,30,0.6) 0%, rgba(20,20,20,0.8) 100%);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .card {
+            border-radius: 1.5rem; /* Extra rounded like the screenshot */
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+        .card:hover { transform: translateY(-2px); }
+        
+        /* Calendar Grid */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+        }
+        .day-cell {
+            aspect-ratio: 1;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-6 pb-20">
+
+    <!-- Header -->
+    <header class="flex justify-between items-center mb-8 px-2">
+        <h1 class="text-2xl font-bold tracking-tight">Insights</h1>
+        <div class="h-10 w-10 rounded-full gradient-purple flex items-center justify-center font-bold shadow-lg shadow-purple-500/20">A</div>
+    </header>
+
+    <!-- Top Bento Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        
+        <!-- PnL Card (Big Gradient) -->
+        <div class="card gradient-purple p-6 text-white shadow-lg shadow-purple-900/20 relative overflow-hidden md:col-span-2">
+            <div class="relative z-10">
+                <p class="text-white/80 text-sm font-medium mb-1">Total Net Profit</p>
+                <h2 class="text-4xl font-bold tracking-tight">$12,450.00</h2>
+                <div class="mt-4 flex gap-3">
+                    <span class="bg-white/20 px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm">▲ 15.2% this month</span>
+                    <span class="bg-white/10 px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm">42 Trades</span>
+                </div>
+            </div>
+            <!-- Decorative circle -->
+            <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-white/10 rounded-full blur-2xl"></div>
+        </div>
+
+        <!-- Win Rate Card -->
+        <div class="card gradient-dark p-6 flex flex-col justify-between">
+            <div>
+                <p class="text-gray-400 text-xs font-bold uppercase tracking-wider">Win Rate</p>
+                <h3 class="text-3xl font-bold mt-2 text-white">68%</h3>
+            </div>
+            <div class="h-2 w-full bg-gray-800 rounded-full mt-4 overflow-hidden">
+                <div class="h-full gradient-blue w-[68%] rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
+            </div>
+            <p class="text-xs text-gray-500 mt-3">Target: 60%</p>
+        </div>
+    </div>
+
+    <!-- Charts & Stats Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        
+        <!-- Equity Curve -->
+        <div class="card gradient-dark p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-bold text-lg">Equity Curve</h3>
+                <span class="text-xs bg-gray-800 px-2 py-1 rounded text-gray-400">30D</span>
+            </div>
+            <div style="height: 220px;">
+                <canvas id="equityChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Recent Activity (List Style) -->
+        <div class="card gradient-dark p-6">
+            <h3 class="font-bold text-lg mb-6">Recent Trades</h3>
+            <div class="space-y-4">
+                <!-- Trade Item -->
+                <div class="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer">
+                    <div class="flex items-center gap-4">
+                        <div class="h-10 w-10 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd" /></svg>
+                        </div>
+                        <div>
+                            <p class="font-bold text-sm">XAUUSD Long</p>
+                            <p class="text-xs text-gray-500">Today, 10:30 AM</p>
+                        </div>
+                    </div>
+                    <p class="font-bold text-green-400">+$450.00</p>
+                </div>
+
+                <!-- Trade Item -->
+                <div class="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer">
+                    <div class="flex items-center gap-4">
+                        <div class="h-10 w-10 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12 13a1 1 0 110 2H7a1 1 0 01-1-1v-5a1 1 0 112 0v2.586l4.293-4.293a1 1 0 011.414 0L16 9.586V7a1 1 0 112 0v5a1 1 0 01-1 1h-5z" clip-rule="evenodd" /></svg>
+                        </div>
+                        <div>
+                            <p class="font-bold text-sm">EURUSD Short</p>
+                            <p class="text-xs text-gray-500">Yesterday</p>
+                        </div>
+                    </div>
+                    <p class="font-bold text-red-400">-$120.00</p>
+                </div>
+
+                 <!-- Trade Item -->
+                 <div class="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer">
+                    <div class="flex items-center gap-4">
+                        <div class="h-10 w-10 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd" /></svg>
+                        </div>
+                        <div>
+                            <p class="font-bold text-sm">US30 Long</p>
+                            <p class="text-xs text-gray-500">Mar 3</p>
+                        </div>
+                    </div>
+                    <p class="font-bold text-green-400">+$210.00</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar View -->
+    <div class="card gradient-dark p-6 mb-6">
+        <h3 class="font-bold text-lg mb-4">Trading Streak</h3>
+        <div class="calendar-grid">
+            <!-- Mock Calendar Days -->
+            <div class="day-cell bg-white/5 text-gray-500">28</div>
+            <div class="day-cell bg-white/5 text-gray-500">1</div>
+            <div class="day-cell bg-green-500/20 text-green-400 border border-green-500/30">2</div>
+            <div class="day-cell bg-red-500/20 text-red-400 border border-red-500/30">3</div>
+            <div class="day-cell bg-green-500/20 text-green-400 border border-green-500/30">4</div>
+            <div class="day-cell bg-green-500/40 text-green-300 border border-green-500/50 shadow-[0_0_10px_rgba(34,197,94,0.3)]">5</div>
+            <div class="day-cell bg-white/5 text-gray-500">6</div>
+        </div>
+        <p class="text-center text-xs text-gray-500 mt-4">Current Streak: <span class="text-white font-bold">2 Days</span></p>
+    </div>
+
+    <script>
+        // Equity Chart
+        const ctx = document.getElementById('equityChart').getContext('2d');
+        
+        // Gradient for the line fill
+        const gradientFill = ctx.createLinearGradient(0, 0, 0, 300);
+        gradientFill.addColorStop(0, 'rgba(99, 102, 241, 0.3)'); // Purple top
+        gradientFill.addColorStop(1, 'rgba(99, 102, 241, 0)');   // Transparent bottom
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
+                datasets: [{
+                    label: 'Equity',
+                    data: [10000, 10200, 10150, 10400, 10800, 10700, 11200, 11500, 12100, 12450],
+                    borderColor: '#818cf8', // Indigo 400
+                    backgroundColor: gradientFill,
+                    borderWidth: 3,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: '#1e1e1e',
+                        titleColor: '#fff',
+                        bodyColor: '#ccc',
+                        borderColor: '#333',
+                        borderWidth: 1
+                    }
+                },
+                scales: {
+                    x: { display: false },
+                    y: {
+                        display: true,
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { 
+                            color: '#666',
+                            callback: function(value) { return '$' + value/1000 + 'k'; }
+                        },
+                        border: { display: false }
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                }
+            }
+        });
+    </script>
+</body>
+</html>

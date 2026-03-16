@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpotLock Cluj | Book Parking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bolt: '#34bb78',
+                        boltDark: '#16a34a',
+                        textDark: '#1a1a1a',
+                        mutedText: '#6b7280',
+                        bgOffWhite: '#f9fafb',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-bgOffWhite text-textDark font-sans min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="p-6 flex items-center justify-between border-b border-gray-200">
+        <h1 class="text-xl font-bold tracking-tight">Spot<span class="text-bolt">Lock</span></h1>
+        <div class="w-8 h-8 rounded-full bg-gray-200 overflow-hidden border border-gray-300"></div>
+    </header>
+
+    <!-- Map Placeholder -->
+    <div class="flex-grow bg-gray-200 relative">
+        <div class="absolute inset-0 flex items-center justify-center">
+            <p class="text-mutedText">[Map View: Zorilor, Cluj]</p>
+        </div>
+        <!-- Mock Parking Spot -->
+        <div class="absolute bottom-10 left-6 right-6">
+            <div class="bg-white p-4 rounded-3xl shadow-xl border border-gray-100">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="font-bold">Zorilor Street 14</p>
+                        <p class="text-xs text-mutedText">Available now • 5 RON/hr</p>
+                    </div>
+                    <div class="px-3 py-1 bg-green-100 text-bolt text-xs font-bold rounded-full">OPEN</div>
+                </div>
+                <button onclick="showUnlock()" id="bookBtn" class="mt-4 w-full bg-bolt text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all">
+                    Book Spot
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unlocking Overlay -->
+    <div id="unlockOverlay" class="fixed inset-0 bg-white z-50 hidden flex flex-col items-center justify-center">
+        <div class="text-center animate-bounce">
+            <div class="w-24 h-24 bg-bolt rounded-full flex items-center justify-center mb-6">
+                <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 002 2v6a2 2 0 002 2z"></path></svg>
+            </div>
+            <h2 class="text-2xl font-bold">Unlocking Barrier...</h2>
+            <p class="text-mutedText mt-2">Please stay within range.</p>
+        </div>
+    </div>
+
+    <script>
+        function showUnlock() {
+            document.getElementById('unlockOverlay').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('unlockOverlay').classList.add('hidden');
+                document.getElementById('bookBtn').innerText = "Spot Unlocked";
+                document.getElementById('bookBtn').classList.add('bg-boltDark');
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

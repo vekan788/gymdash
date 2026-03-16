@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SpotLock Cluj</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f9fafb; color: #1a1a1a; }
+        .bolt-green { background-color: #34bb78; }
+        .text-bolt { color: #34bb78; }
+        .bolt-dark { background-color: #16a34a; }
+        .shadow-soft { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <!-- Header / Search -->
+    <header class="p-4 bg-white z-10 shadow-sm">
+        <div class="relative">
+            <input type="text" placeholder="Search for streets in Cluj..." class="w-full py-3 px-4 pl-10 rounded-2xl bg-gray-100 focus:outline-none focus:ring-2 focus:ring-bolt">
+            <div class="absolute left-3 top-3.5 text-gray-400">🔍</div>
+            <div class="absolute right-3 top-3 text-bolt font-bold">⚙️</div>
+        </div>
+    </header>
+
+    <!-- Map Placeholder -->
+    <div class="flex-grow bg-gray-200 relative overflow-hidden">
+        <div class="absolute inset-0 bg-gray-300 flex items-center justify-center text-gray-500">
+            [Map: Cluj-Napoca, Zorilor Area]
+            <!-- Mock Pin -->
+            <div onclick="showCard()" class="absolute top-1/3 left-1/2 w-8 h-8 bg-bolt rounded-full border-4 border-white shadow-lg animate-bounce cursor-pointer"></div>
+        </div>
+    </div>
+
+    <!-- Info Card (Hidden by default) -->
+    <div id="spotCard" class="hidden absolute bottom-0 left-0 right-0 bg-white p-6 rounded-t-3xl shadow-2xl z-20 transform transition-transform">
+        <div class="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4"></div>
+        <div class="flex justify-between items-start">
+            <div>
+                <h2 class="text-xl font-bold">Zorilor Street 14</h2>
+                <div class="flex items-center gap-2 mt-1">
+                    <span class="text-bolt font-bold text-sm">5 RON / hr</span>
+                    <span class="text-gray-400 text-xs">Available Now</span>
+                </div>
+            </div>
+            <span class="px-3 py-1 bg-green-100 text-bolt text-xs font-bold rounded-full border border-bolt">Barrier Secured</span>
+        </div>
+        
+        <p class="text-sm text-gray-600 mt-4 leading-relaxed">Private driveway in a quiet residential area. 24/7 access. Smart barrier protection included.</p>
+
+        <button onclick="showUnlock()" id="bookBtn" class="mt-6 w-full bolt-green text-white font-bold py-4 rounded-2xl shadow-soft transition-all">
+            Book Spot
+        </button>
+    </div>
+
+    <!-- Unlocking Overlay -->
+    <div id="unlockOverlay" class="fixed inset-0 bg-white z-50 hidden flex flex-col items-center justify-center">
+        <div class="text-center">
+            <div id="spinner" class="w-24 h-24 border-8 border-gray-200 border-t-bolt rounded-full animate-spin mx-auto mb-6"></div>
+            <h2 id="unlockText" class="text-2xl font-bold">Booking Spot...</h2>
+        </div>
+    </div>
+
+    <script>
+        function showCard() {
+            document.getElementById('spotCard').classList.remove('hidden');
+        }
+        function showUnlock() {
+            const overlay = document.getElementById('unlockOverlay');
+            overlay.classList.remove('hidden');
+            
+            setTimeout(() => {
+                document.getElementById('spinner').classList.remove('animate-spin');
+                document.getElementById('spinner').classList.add('hidden');
+                document.getElementById('unlockText').innerText = "Barrier Opened!";
+                document.getElementById('unlockText').classList.add('text-boltDark');
+                
+                setTimeout(() => {
+                    overlay.classList.add('hidden');
+                    document.getElementById('spotCard').classList.add('hidden');
+                    alert("Spot Secured!");
+                }, 1500);
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
