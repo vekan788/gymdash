@@ -1,0 +1,9 @@
+.openclaw/
+.venv/
+memory/
+skills/
+*.md
+*.py
+*.jpg
+*.html
+!index.html
