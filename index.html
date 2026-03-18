@@ -52,7 +52,7 @@
         </div>
         <div class="glass-card p-4">
             <p class="text-gym-muted text-xs uppercase tracking-wider">Consistency</p>
-            <h3 class="text-2xl font-bold mt-1 text-gym-accent">100%</h3>
+            <h3 class="text-2xl font-bold mt-1 text-gym-accent" id="statConsistency">0%</h3>
         </div>
     </div>
 
@@ -90,6 +90,42 @@
                     <li class="text-gym-muted text-sm italic" id="loadingText">Fetching from Supabase...</li>
                 </ul>
             </div>
+        </div>
+    </div>
+
+    
+    <!-- Analytics & Breakdown Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+        <!-- Weekly Summary -->
+        <div class="glass-card p-6">
+            <h2 class="text-xl font-bold mb-4">📊 Weekly Target (4 Sessions)</h2>
+            <div class="w-full bg-slate-700 h-4 rounded-full mt-2 overflow-hidden shadow-inner">
+                <div id="weeklyProgressBar" class="bg-gym-accent h-4 rounded-full transition-all duration-1000" style="width: 0%"></div>
+            </div>
+            <div class="flex justify-between mt-2 text-sm text-gym-muted">
+                <span id="weeklyProgressText">0 / 4 Sessions</span>
+                <span>Goal: 4/week</span>
+            </div>
+            
+            <div class="mt-6 space-y-3">
+                <div class="flex justify-between items-center bg-white/5 p-3 rounded-lg">
+                    <span class="text-sm font-medium text-gym-muted">Avg. Volume / Workout</span>
+                    <span class="font-bold" id="avgVolume">0 kg</span>
+                </div>
+                <div class="flex justify-between items-center bg-white/5 p-3 rounded-lg">
+                    <span class="text-sm font-medium text-gym-muted">Total Sets (All Time)</span>
+                    <span class="font-bold" id="totalSets">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Muscle Group Heatmap (Placeholder/Future Dev) -->
+        <div class="glass-card p-6 flex flex-col justify-center items-center text-center border-dashed border-2 border-slate-600/50 bg-transparent">
+            <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4">
+                <span class="text-2xl">💪</span>
+            </div>
+            <h3 class="font-bold text-lg text-gym-muted">More Analytics Coming Soon</h3>
+            <p class="text-xs text-slate-500 mt-2 max-w-xs">Volume distribution charts and muscle heatmaps are currently tracking in the background.</p>
         </div>
     </div>
 
@@ -204,6 +240,7 @@
                 renderUI(allData);
             }
 
+            
             // Render UI
             function renderUI(data) {
                 const loadText = document.getElementById('loadingText');
@@ -214,6 +251,26 @@
 
                 let totalVolume = 0;
                 let maxWeight = 0;
+                let totalSets = 0;
+
+                // --- Consistency & Weekly Logic ---
+                // We want to find how many UNIQUE days we worked out.
+                const uniqueDays = new Set();
+                
+                // For "This Week" (Assuming week starts on Monday)
+                const now = new Date();
+                const currentDay = now.getDay(); // 0 = Sun, 1 = Mon...
+                const distanceToMonday = currentDay === 0 ? 6 : currentDay - 1;
+                const startOfThisWeek = new Date(now);
+                startOfThisWeek.setDate(now.getDate() - distanceToMonday);
+                startOfThisWeek.setHours(0, 0, 0, 0);
+
+                let workoutsThisWeek = new Set();
+                let firstWorkoutDate = now;
+
+                if (data.length > 0) {
+                    firstWorkoutDate = new Date(data[data.length - 1].created_at); // Oldest log
+                }
 
                 if (data.length === 0) {
                     logsList.innerHTML = '<li class="text-gym-muted text-sm text-center py-8">No workouts logged yet. Tap the + button to start.</li>';
@@ -221,16 +278,26 @@
                     data.forEach(log => {
                         const volume = log.weight * log.reps * log.sets;
                         totalVolume += volume;
+                        totalSets += log.sets;
                         if (log.weight > maxWeight) maxWeight = log.weight;
 
-                        const dateStr = new Date(log.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        const logDate = new Date(log.created_at);
+                        const dateStr = logDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        
+                        uniqueDays.add(dateStr); // Track total unique workout days
+
+                        if(logDate >= startOfThisWeek) {
+                            workoutsThisWeek.add(dateStr);
+                        }
+
+                        const displayDate = logDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                         const prBadge = log.is_pr ? `<span class="bg-gym-accent/20 text-gym-accent text-[10px] px-2 py-0.5 rounded-full ml-2 uppercase font-bold tracking-wider border border-gym-accent/50">PR</span>` : '';
                         
                         logsList.innerHTML += `
                             <li class="flex justify-between items-center border-b border-slate-700 pb-3 mb-3 last:border-0">
                                 <div>
                                     <p class="font-medium text-gym-text">${log.exercise_name} ${prBadge}</p>
-                                    <p class="text-xs text-gym-muted">${dateStr}</p>
+                                    <p class="text-xs text-gym-muted">${displayDate}</p>
                                 </div>
                                 <div class="text-right">
                                     <p class="font-bold text-gym-accent">${log.weight} kg</p>
@@ -241,12 +308,46 @@
                     });
                 }
 
+                // Calculate Consistency
+                // Target: 4 days per week (4/7 = 57% of days in a given span should be active, OR just weeks * 4).
+                // Let's do: (Total Unique Workout Days) / (Total Weeks Since Start * 4)
+                const daysSinceStart = Math.max(1, Math.floor((now - firstWorkoutDate) / (1000 * 60 * 60 * 24)));
+                let totalWeeks = Math.ceil(daysSinceStart / 7);
+                if (totalWeeks < 1) totalWeeks = 1;
+                
+                const targetDaysAllTime = totalWeeks * 4;
+                let consistency = (uniqueDays.size / targetDaysAllTime) * 100;
+                if (consistency > 100) consistency = 100; // Cap at 100% if they go 5 days a week
+
+                // Update DOM Stats
                 document.getElementById('statVolume').innerHTML = `${totalVolume.toLocaleString()} <span class="text-sm text-gym-muted font-normal">kg</span>`;
-                document.getElementById('statWorkouts').innerText = data.length;
+                document.getElementById('statWorkouts').innerText = data.length; // Raw sets logged
                 document.getElementById('statSquat').innerHTML = `${maxWeight} <span class="text-sm text-gym-muted font-normal">kg</span>`;
+                
+                const consEl = document.getElementById('statConsistency');
+                if(consEl) consEl.innerText = Math.round(consistency) + '%';
+
+                // Update New Weekly Targets
+                const wProgressBar = document.getElementById('weeklyProgressBar');
+                const wProgressText = document.getElementById('weeklyProgressText');
+                if(wProgressBar && wProgressText) {
+                    const weekPercent = Math.min((workoutsThisWeek.size / 4) * 100, 100);
+                    wProgressBar.style.width = weekPercent + '%';
+                    wProgressText.innerText = `${workoutsThisWeek.size} / 4 Sessions`;
+                }
+
+                // Update Averages
+                const avgVol = document.getElementById('avgVolume');
+                if(avgVol) {
+                    const avg = uniqueDays.size > 0 ? Math.round(totalVolume / uniqueDays.size) : 0;
+                    avgVol.innerText = `${avg.toLocaleString()} kg`;
+                }
+                const tSets = document.getElementById('totalSets');
+                if(tSets) tSets.innerText = totalSets;
 
                 updateChart(document.getElementById('chartSelector').value || 'Squat');
             }
+
 
             // Submit Logic
             async function submitLog() {
