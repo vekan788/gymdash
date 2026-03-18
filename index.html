@@ -286,11 +286,28 @@
                 submitBtn.addEventListener('click', submitLog);
             }
 
-            // Chart Logic
+            
+            // Chart Logic - Group by Date and plot MAX weight
             function updateChart(exerciseName) {
-                const filteredData = allData.filter(d => d.exercise_name === exerciseName).reverse();
-                const labels = filteredData.map((_, i) => `S${i+1}`);
-                const weights = filteredData.map(d => d.weight);
+                const filteredData = allData.filter(d => d.exercise_name === exerciseName);
+                
+                // Group by date
+                const grouped = {};
+                filteredData.forEach(d => {
+                    const dateStr = new Date(d.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    if(!grouped[dateStr]) {
+                        grouped[dateStr] = d.weight;
+                    } else {
+                        // Keep the highest weight for that day
+                        if(d.weight > grouped[dateStr]) {
+                            grouped[dateStr] = d.weight;
+                        }
+                    }
+                });
+
+                // Convert back to arrays (chronological order - oldest to newest)
+                const dates = Object.keys(grouped).reverse(); 
+                const weights = dates.map(date => grouped[date]);
 
                 const ctx = document.getElementById('strengthChart').getContext('2d');
                 if(chartInstance) { chartInstance.destroy(); }
@@ -302,9 +319,9 @@
                 chartInstance = new window.Chart(ctx, {
                     type: 'line',
                     data: {
-                        labels: labels.length > 0 ? labels : ['No Data'],
+                        labels: dates.length > 0 ? dates : ['No Data'],
                         datasets: [{
-                            label: `${exerciseName} Weight (kg)`,
+                            label: `${exerciseName} Max Weight (kg)`,
                             data: weights.length > 0 ? weights : [0],
                             borderColor: '#22c55e', backgroundColor: gradient,
                             borderWidth: 3, fill: true, tension: 0.4
@@ -321,7 +338,7 @@
                 });
             }
 
-            const chartSel = document.getElementById('chartSelector');
+            const chartSel = document.getElementById(\'chartSelector\');
             if(chartSel) chartSel.addEventListener('change', (e) => updateChart(e.target.value));
 
             // Load initially
