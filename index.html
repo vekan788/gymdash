@@ -119,72 +119,16 @@
             </div>
         </div>
 
-        <!-- Muscle Group Heatmap (Placeholder/Future Dev) -->
-        <div class="glass-card p-6 flex flex-col justify-center items-center text-center border-dashed border-2 border-slate-600/50 bg-transparent">
-            <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4">
-                <span class="text-2xl">💪</span>
+        
+        <!-- Muscle Group Heatmap -->
+        <div class="glass-card p-6">
+            <h2 class="text-xl font-bold mb-4">💪 Volume by Muscle Group</h2>
+            <div class="chart-container" style="height: 220px;">
+                <canvas id="muscleChart"></canvas>
             </div>
-            <h3 class="font-bold text-lg text-gym-muted">More Analytics Coming Soon</h3>
-            <p class="text-xs text-slate-500 mt-2 max-w-xs">Volume distribution charts and muscle heatmaps are currently tracking in the background.</p>
+            <div id="muscleLegend" class="mt-4 flex flex-wrap justify-center gap-2 text-xs text-gym-muted"></div>
         </div>
-    </div>
 
-    <!-- Floating Input Form Overlay -->
-    <div id="logFormOverlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center transition-opacity">
-        <div class="bg-gym-card w-full sm:w-[400px] sm:rounded-3xl rounded-t-3xl p-6 shadow-2xl border border-white/10 transform transition-transform translate-y-full sm:translate-y-0" id="logFormCard">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold">Log Set</h2>
-                <button id="closeFormBtn" class="text-gym-muted hover:text-white text-xl">&times;</button>
-            </div>
-            
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs text-gym-muted uppercase tracking-wider mb-1">Exercise</label>
-                    <select id="inputExercise" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 focus:outline-none focus:border-gym-accent">
-                        <option value="Squat">Squat</option>
-                        <option value="Bench Press">Bench Press</option>
-                        <option value="Deadlift">Deadlift</option>
-                        <option value="Overhead Press">Overhead Press</option>
-                        <option value="Leg Press">Leg Press</option>
-                        <option value="Incline Bench Press (Dumbbell)">Incline Bench Press (Dumbbell)</option>
-                        <option value="Seated Row (Cable)">Seated Row (Cable)</option>
-                        <option value="Triceps Pushdown">Triceps Pushdown</option>
-                        <option value="Incline Curl (Dumbbell)">Incline Curl (Dumbbell)</option>
-                        <option value="Chest Fly">Chest Fly</option>
-                        <option value="Lateral Raise (Dumbbell)">Lateral Raise (Dumbbell)</option>
-                        <option value="Wrist Roller">Wrist Roller</option>
-                        <option value="Lying Leg Curl (Machine)">Lying Leg Curl (Machine)</option>
-                        <option value="Leg Extension (Machine)">Leg Extension (Machine)</option>
-                        <option value="Seated Calf Raise (Plate Loaded)">Seated Calf Raise (Plate Loaded)</option>
-                    </select>
-                </div>
-                
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs text-gym-muted uppercase tracking-wider mb-1">Weight (kg)</label>
-                        <input type="number" id="inputWeight" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 focus:outline-none focus:border-gym-accent" placeholder="100">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gym-muted uppercase tracking-wider mb-1">Reps</label>
-                        <input type="number" id="inputReps" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 focus:outline-none focus:border-gym-accent" placeholder="5">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs text-gym-muted uppercase tracking-wider mb-1">Sets</label>
-                    <input type="number" id="inputSets" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 focus:outline-none focus:border-gym-accent" value="1">
-                </div>
-
-                <label class="flex items-center space-x-3 mt-4">
-                    <input type="checkbox" id="inputPR" class="w-5 h-5 rounded border-slate-700 text-gym-accent focus:ring-gym-accent focus:ring-offset-gym-card bg-slate-900">
-                    <span class="text-sm font-medium">Personal Record! 🏆</span>
-                </label>
-
-                <button id="submitBtn" class="w-full bg-gym-accent hover:bg-green-500 text-slate-900 font-bold py-4 rounded-xl mt-6 transition-transform active:scale-95 flex items-center justify-center gap-2">
-                    Save to Database
-                </button>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -344,6 +288,68 @@
                 }
                 const tSets = document.getElementById('totalSets');
                 if(tSets) tSets.innerText = totalSets;
+
+                
+                // --- Muscle Group Heatmap Logic ---
+                const muscleMap = {
+                    'Squat': 'Legs', 'Leg Press': 'Legs', 'Lying Leg Curl (Machine)': 'Legs', 'Leg Extension (Machine)': 'Legs', 'Seated Calf Raise (Plate Loaded)': 'Legs',
+                    'Bench Press': 'Chest', 'Incline Bench Press (Dumbbell)': 'Chest', 'Chest Fly': 'Chest', 'Dumbbell Bench Press': 'Chest',
+                    'Deadlift': 'Back', 'Seated Row (Cable)': 'Back', 'Lat Pulldown': 'Back', 'Assisted Pullup': 'Back',
+                    'Overhead Press': 'Shoulders', 'Lateral Raise (Dumbbell)': 'Shoulders',
+                    'Bicep Curl': 'Arms', 'Triceps Pushdown': 'Arms', 'Wrist Roller': 'Arms'
+                };
+
+                const volumeByMuscle = { 'Chest': 0, 'Back': 0, 'Legs': 0, 'Shoulders': 0, 'Arms': 0, 'Other': 0 };
+
+                data.forEach(log => {
+                    const volume = log.weight * log.reps * log.sets;
+                    const group = muscleMap[log.exercise_name] || 'Other';
+                    volumeByMuscle[group] += volume;
+                });
+
+                const mLabels = Object.keys(volumeByMuscle).filter(k => volumeByMuscle[k] > 0);
+                const mData = mLabels.map(k => volumeByMuscle[k]);
+                
+                // Colors matching the groups
+                const mColors = {
+                    'Chest': '#3b82f6', // Blue
+                    'Back': '#22c55e', // Green
+                    'Legs': '#f59e0b', // Amber/Orange
+                    'Shoulders': '#ef4444', // Red
+                    'Arms': '#a855f7', // Purple
+                    'Other': '#94a3b8' // Gray
+                };
+                const bgColors = mLabels.map(k => mColors[k]);
+
+                // Destroy old instance if exists
+                if(window.muscleChartInstance) { window.muscleChartInstance.destroy(); }
+
+                const ctxMuscle = document.getElementById('muscleChart').getContext('2d');
+                window.muscleChartInstance = new window.Chart(ctxMuscle, {
+                    type: 'doughnut',
+                    data: {
+                        labels: mLabels,
+                        datasets: [{
+                            data: mData.length > 0 ? mData : [1],
+                            backgroundColor: mData.length > 0 ? bgColors : ['#1e293b'],
+                            borderWidth: 0,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        cutout: '75%'
+                    }
+                });
+
+                // Build custom legend
+                const legendDiv = document.getElementById('muscleLegend');
+                if(legendDiv) {
+                    legendDiv.innerHTML = mLabels.map(k => 
+                        `<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full" style="background:${mColors[k]}"></span>${k}</span>`
+                    ).join('');
+                }
 
                 updateChart(document.getElementById('chartSelector').value || 'Squat');
             }
