@@ -287,8 +287,11 @@
             }
 
             
+            
             // Chart Logic - Group by Date and plot MAX weight
             function updateChart(exerciseName) {
+                if(!allData || allData.length === 0) return;
+                
                 const filteredData = allData.filter(d => d.exercise_name === exerciseName);
                 
                 // Group by date
@@ -298,14 +301,12 @@
                     if(!grouped[dateStr]) {
                         grouped[dateStr] = d.weight;
                     } else {
-                        // Keep the highest weight for that day
                         if(d.weight > grouped[dateStr]) {
                             grouped[dateStr] = d.weight;
                         }
                     }
                 });
 
-                // Convert back to arrays (chronological order - oldest to newest)
                 const dates = Object.keys(grouped).reverse(); 
                 const weights = dates.map(date => grouped[date]);
 
@@ -338,12 +339,13 @@
                 });
             }
 
-            const chartSel = document.getElementById(\'chartSelector\');
+            const chartSel = document.getElementById('chartSelector');
             if(chartSel) chartSel.addEventListener('change', (e) => updateChart(e.target.value));
 
             // Load initially
             fetchWorkouts();
         });
     </script>
+
 </body>
 </html>
